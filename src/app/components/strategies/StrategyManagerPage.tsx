@@ -17,7 +17,7 @@ export default function StrategyManagerPage() {
   const {
     presetConfigs, setPresetConfigs,
     customStrategies, setCustomStrategies,
-    tables, activeTableIdx,
+    activeTable,
   } = useAppContext();
 
   const [importError, setImportError]   = useState<string | null>(null);
@@ -61,7 +61,6 @@ export default function StrategyManagerPage() {
         description: draft.description,
         code: draft.code,
         enabled: true,
-        bankroll: 1000,
       };
       setCustomStrategies([...customStrategies, def]);
     }
@@ -97,8 +96,7 @@ export default function StrategyManagerPage() {
   };
 
   const handleExportBundle = () => {
-    const table = tables[activeTableIdx];
-    if (table) exportBundle(table, customStrategies);
+    exportBundle(activeTable, customStrategies);
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -202,6 +200,7 @@ export default function StrategyManagerPage() {
           initialName={modal.mode === 'view' || modal.mode === 'fork' ? modal.name : undefined}
           strategy={modal.mode === 'edit' ? modal.strategy : undefined}
           onSave={handleSaveModal}
+          onFork={modal.mode === 'view' ? () => setModal({ mode: 'fork', code: modal.code, name: `${modal.name} (fork)` }) : undefined}
           onClose={() => setModal(null)}
         />
       )}

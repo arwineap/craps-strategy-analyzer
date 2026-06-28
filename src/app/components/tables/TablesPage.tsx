@@ -1,42 +1,43 @@
 import React, { useRef, useState } from 'react';
-import { TableConfig } from '../../../lib/table-config.js';
+import { TableConfig, DEFAULT_TABLES } from '../../../lib/table-config.js';
 import { useAppContext } from '../../App.js';
-import {
-  exportAllTables, parseImport, readFileAsText,
-  exportBundle,
-} from '../../export.js';
+import { parseImport, readFileAsText } from '../../export.js';
+import type { CustomTableDef } from '../../types.js';
 import TableCard from './TableCard.js';
 import TableEditor from './TableEditor.js';
 
 type Mode = 'list' | 'add' | 'edit';
 
 export default function TablesPage() {
-  const { tables, setTables, activeTableIdx, setActiveTableIdx, customStrategies } = useAppContext();
+  const { customTables, setCustomTables } = useAppContext();
   const [mode, setMode] = useState<Mode>('list');
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const editingTable = editingId ? customTables.find(t => t.id === editingId) : null;
+
   const handleAdd = (table: TableConfig) => {
-    setTables([...tables, table]);
+    const def: CustomTableDef = {
+      id: crypto.randomUUID(),
+      ...table.toJSON(),
+    };
+    setCustomTables([...customTables, def]);
     setMode('list');
   };
 
   const handleEdit = (table: TableConfig) => {
-    if (editingIdx === null) return;
-    const next = [...tables];
-    next[editingIdx] = table;
-    setTables(next);
+    if (!editingId) return;
+    setCustomTables(customTables.map(t => t.id === editingId ? { ...t, ...table.toJSON() } : t));
     setMode('list');
-    setEditingIdx(null);
+    setEditingId(null);
   };
 
-  const handleDelete = (idx: number) => {
-    if (tables.length <= 1) return alert('You must keep at least one table.');
-    if (!confirm(`Delete "${tables[idx].name}"?`)) return;
-    const next = tables.filter((_, i) => i !== idx);
-    setTables(next);
-    if (activeTableIdx >= next.length) setActiveTableIdx(next.length - 1);
+  const handleDelete = (id: string) => {
+    const t = customTables.find(t => t.id === id);
+    if (!t) return;
+    if (!confirm(`Delete "${t.name}"?`)) return;
+    setCustomTables(customTables.filter(t => t.id !== id));
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,11 +48,14 @@ export default function TablesPage() {
       const text = await readFileAsText(file);
       const parsed = parseImport(text);
       if (parsed.type === 'table') {
-        setTables([...tables, parsed.table]);
+        const def: CustomTableDef = { id: crypto.randomUUID(), ...parsed.table.toJSON() };
+        setCustomTables([...customTables, def]);
       } else if (parsed.type === 'tables') {
-        setTables([...tables, ...parsed.tables]);
+        const defs: CustomTableDef[] = parsed.tables.map(t => ({ id: crypto.randomUUID(), ...t.toJSON() }));
+        setCustomTables([...customTables, ...defs]);
       } else if (parsed.type === 'bundle' && parsed.table) {
-        setTables([...tables, parsed.table]);
+        const def: CustomTableDef = { id: crypto.randomUUID(), ...parsed.table.toJSON() };
+        setCustomTables([...customTables, def]);
       } else {
         setImportError('File does not contain table data.');
       }
@@ -72,15 +76,15 @@ export default function TablesPage() {
     );
   }
 
-  if (mode === 'edit' && editingIdx !== null) {
+  if (mode === 'edit' && editingTable) {
     return (
       <div>
         <h2 className="text-xl font-bold mb-4">Edit Table</h2>
         <div className="card max-w-lg">
           <TableEditor
-            initial={tables[editingIdx]}
+            initial={new TableConfig(editingTable)}
             onSave={handleEdit}
-            onCancel={() => { setMode('list'); setEditingIdx(null); }}
+            onCancel={() => { setMode('list'); setEditingId(null); }}
           />
         </div>
       </div>
@@ -88,33 +92,9 @@ export default function TablesPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Casino Tables</h2>
-        <div className="flex gap-2">
-          <button
-            className="btn-secondary btn-sm"
-            onClick={() => exportAllTables(tables)}
-          >
-            Export All
-          </button>
-          <button
-            className="btn-secondary btn-sm"
-            onClick={() => exportBundle(tables[activeTableIdx], customStrategies)}
-          >
-            Export Bundle
-          </button>
-          <label className="btn-secondary btn-sm cursor-pointer">
-            Import
-            <input
-              type="file" accept=".json" ref={fileRef}
-              onChange={handleImport} className="hidden"
-            />
-          </label>
-          <button className="btn-primary btn-sm" onClick={() => setMode('add')}>
-            + Add Table
-          </button>
-        </div>
       </div>
 
       {importError && (
@@ -123,25 +103,54 @@ export default function TablesPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tables.map((table, idx) => (
-          <TableCard
-            key={idx}
-            table={table}
-            isActive={idx === activeTableIdx}
-            onActivate={() => setActiveTableIdx(idx)}
-            onEdit={() => { setEditingIdx(idx); setMode('edit'); }}
-            onDelete={() => handleDelete(idx)}
-          />
-        ))}
+      {/* Presets */}
+      <div>
+        <h3 className="font-semibold text-gray-900 mb-3">Presets</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {DEFAULT_TABLES.map(data => (
+            <TableCard
+              key={data.name}
+              table={new TableConfig(data)}
+              isPreset
+            />
+          ))}
+        </div>
       </div>
 
-      {tables.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          <p className="text-4xl mb-3">🎰</p>
-          <p>No tables defined. Add one to get started.</p>
+      {/* My Tables */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-900">My Tables</h3>
+          <div className="flex gap-2">
+            <label className="btn-secondary btn-sm cursor-pointer">
+              Import
+              <input type="file" accept=".json" ref={fileRef} onChange={handleImport} className="hidden" />
+            </label>
+            <button className="btn-primary btn-sm" onClick={() => setMode('add')}>
+              + Add Table
+            </button>
+          </div>
         </div>
-      )}
+
+        {customTables.length === 0 ? (
+          <div className="card text-center py-10 text-gray-400">
+            <p className="text-2xl mb-2">🎰</p>
+            <p className="font-medium text-gray-600">No custom tables yet</p>
+            <p className="text-sm mt-1">Click <strong>+ Add Table</strong> to define your own rules.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {customTables.map(def => (
+              <TableCard
+                key={def.id}
+                table={new TableConfig(def)}
+                onEdit={() => { setEditingId(def.id); setMode('edit'); }}
+                onDelete={() => handleDelete(def.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,23 +1,20 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { TableConfig } from '../lib/table-config.js';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { TableConfig, DEFAULT_TABLES } from '../lib/table-config.js';
 import {
-  loadTables, saveTables,
-  loadActiveTableIdx, saveActiveTableIdx,
+  loadCustomTables, saveCustomTables,
   loadPresetConfigs, savePresetConfigs,
   loadCustomStrategies, saveCustomStrategies,
   loadSimSettings, saveSimSettings,
 } from './storage.js';
-import type { PresetConfig, CustomStrategyDef, SimSettings, SimResultData } from './types.js';
+import type { PresetConfig, CustomStrategyDef, CustomTableDef, SimSettings, SimResultData } from './types.js';
 import { useSimulation } from './hooks/useSimulation.js';
 import Layout from './components/Layout.js';
 
 // ── App Context ───────────────────────────────────────────────────────────────
 
 interface AppContextType {
-  tables: TableConfig[];
-  setTables: (tables: TableConfig[]) => void;
-  activeTableIdx: number;
-  setActiveTableIdx: (idx: number) => void;
+  customTables: CustomTableDef[];
+  setCustomTables: (tables: CustomTableDef[]) => void;
   activeTable: TableConfig;
   presetConfigs: PresetConfig[];
   setPresetConfigs: (configs: PresetConfig[]) => void;
@@ -38,11 +35,7 @@ interface AppProps {
 }
 
 export default function App({ pendingImport }: AppProps) {
-  const [tables, setTablesState]             = useState<TableConfig[]>(() => loadTables());
-  const [activeTableIdx, setActiveTableIdxState] = useState(() => {
-    const idx = loadActiveTableIdx();
-    return Math.min(idx, Math.max(0, loadTables().length - 1));
-  });
+  const [customTables, setCustomTablesState] = useState<CustomTableDef[]>(() => loadCustomTables());
   const [presetConfigs, setPresetConfigsState]   = useState<PresetConfig[]>(() => loadPresetConfigs());
   const [customStrategies, setCustomStrategiesState] = useState<CustomStrategyDef[]>(() => loadCustomStrategies());
   const [simSettings, setSimSettingsState]       = useState<SimSettings>(() => loadSimSettings());
@@ -52,14 +45,9 @@ export default function App({ pendingImport }: AppProps) {
 
   const { run, cancel, running, progress, accumulators, result, error } = useSimulation();
 
-  const setTables = useCallback((t: TableConfig[]) => {
-    setTablesState(t);
-    saveTables(t);
-  }, []);
-
-  const setActiveTableIdx = useCallback((idx: number) => {
-    setActiveTableIdxState(idx);
-    saveActiveTableIdx(idx);
+  const setCustomTables = useCallback((t: CustomTableDef[]) => {
+    setCustomTablesState(t);
+    saveCustomTables(t);
   }, []);
 
   const setPresetConfigs = useCallback((c: PresetConfig[]) => {
@@ -77,7 +65,16 @@ export default function App({ pendingImport }: AppProps) {
     saveSimSettings(s);
   }, []);
 
-  const activeTable = tables[Math.min(activeTableIdx, tables.length - 1)] ?? new TableConfig();
+  const activeTable = useMemo(() => {
+    const id = simSettings.selectedTableId;
+    if (id) {
+      const preset = DEFAULT_TABLES.find(t => t.name === id);
+      if (preset) return new TableConfig(preset);
+      const custom = customTables.find(t => t.id === id);
+      if (custom) return new TableConfig(custom);
+    }
+    return new TableConfig(DEFAULT_TABLES[0]);
+  }, [simSettings.selectedTableId, customTables]);
 
   const acceptPendingImport = () => {
     if (!pending) return;
@@ -87,7 +84,6 @@ export default function App({ pendingImport }: AppProps) {
       description: '',
       code: pending.code,
       enabled: true,
-      bankroll: 1000,
     };
     const next = [...customStrategies, def];
     setCustomStrategies(next);
@@ -96,8 +92,7 @@ export default function App({ pendingImport }: AppProps) {
 
   return (
     <AppCtx.Provider value={{
-      tables, setTables,
-      activeTableIdx, setActiveTableIdx,
+      customTables, setCustomTables,
       activeTable,
       presetConfigs, setPresetConfigs,
       customStrategies, setCustomStrategies,

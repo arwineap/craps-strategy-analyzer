@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes banner-flash {
+  0%   { background-color: rgb(254 243 199); } /* amber-100 */
+  30%  { background-color: rgb(252 211 77);  } /* amber-300 */
+  100% { background-color: rgb(254 243 199); } /* amber-100 */
+}
+
+.banner-flash {
+  animation: banner-flash 0.4s ease-out;
+}
+
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900 antialiased;

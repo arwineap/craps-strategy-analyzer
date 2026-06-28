@@ -4,24 +4,27 @@ import { exportTable } from '../../export.js';
 
 interface Props {
   table: TableConfig;
-  isActive: boolean;
-  onActivate: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  isPreset?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
-export default function TableCard({ table, isActive, onActivate, onEdit, onDelete }: Props) {
+export default function TableCard({ table, isPreset, onEdit, onDelete }: Props) {
   return (
-    <div className={`card flex flex-col gap-3 ${isActive ? 'ring-2 ring-indigo-500' : ''}`}>
+    <div className="card flex flex-col gap-3">
       <div className="flex items-start justify-between">
         <div>
           <h3 className="font-semibold text-gray-900">{table.name}</h3>
-          {isActive && <span className="badge bg-indigo-100 text-indigo-700 mt-1">Active</span>}
+          {isPreset && <span className="badge bg-gray-100 text-gray-500 mt-1">Preset</span>}
         </div>
         <div className="flex gap-1">
           <button onClick={() => exportTable(table)} className="btn-secondary btn-sm">Export</button>
-          <button onClick={onEdit} className="btn-secondary btn-sm">Edit</button>
-          <button onClick={onDelete} className="btn-danger btn-sm">Delete</button>
+          {!isPreset && onEdit && (
+            <button onClick={onEdit} className="btn-secondary btn-sm">Edit</button>
+          )}
+          {!isPreset && onDelete && (
+            <button onClick={onDelete} className="btn-danger btn-sm">Delete</button>
+          )}
         </div>
       </div>
 
@@ -35,12 +38,6 @@ export default function TableCard({ table, isActive, onActivate, onEdit, onDelet
         <div className="text-gray-500">Field 12</div>
         <div className="font-medium">{table.fieldTriple12 ? '3:1 (triple)' : '2:1 (double)'}</div>
       </div>
-
-      {!isActive && (
-        <button onClick={onActivate} className="btn-secondary w-full mt-1">
-          Set as Active
-        </button>
-      )}
     </div>
   );
 }

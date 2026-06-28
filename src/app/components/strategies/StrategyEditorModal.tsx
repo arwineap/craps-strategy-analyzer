@@ -33,13 +33,21 @@ interface Props {
   initialName?: string;
   strategy?: CustomStrategyDef;
   onSave: (strategy: Omit<CustomStrategyDef, 'id' | 'enabled' | 'bankroll'>) => void;
+  onFork?: () => void;
   onClose: () => void;
 }
 
-export default function StrategyEditorModal({ mode, initialCode, initialName, strategy, onSave, onClose }: Props) {
+export default function StrategyEditorModal({ mode, initialCode, initialName, strategy, onSave, onFork, onClose }: Props) {
   const [code, setCode] = useState(initialCode ?? strategy?.code ?? BLANK_TEMPLATE);
   const [name, setName] = useState(initialName ?? strategy?.name ?? '');
   const [copied, setCopied] = useState(false);
+  const [bannerFlash, setBannerFlash] = useState(false);
+
+  const flashBanner = () => {
+    setBannerFlash(false);
+    // Force reflow so re-adding the class restarts the animation
+    requestAnimationFrame(() => setBannerFlash(true));
+  };
 
   const isReadOnly = mode === 'view';
   const title = mode === 'create' ? 'New Strategy' : mode === 'edit' ? 'Edit Strategy' : 'View Strategy';
@@ -83,6 +91,9 @@ export default function StrategyEditorModal({ mode, initialCode, initialName, st
           <button onClick={handleShare} className="btn-secondary btn-sm">
             {copied ? 'Copied!' : 'Share URL'}
           </button>
+          {isReadOnly && onFork && (
+            <button onClick={onFork} className="btn-primary btn-sm">Fork</button>
+          )}
           <button onClick={onClose} className="btn-secondary btn-sm">Cancel</button>
           {!isReadOnly && (
             <button onClick={handleSave} className="btn-primary btn-sm">Save</button>
@@ -93,13 +104,31 @@ export default function StrategyEditorModal({ mode, initialCode, initialName, st
       {/* Body */}
       <div className="flex flex-1 min-h-0">
         {/* Editor */}
-        <div className="flex-1 min-w-0 overflow-auto border-r border-gray-200">
-          <StrategyEditor
-            value={code}
-            onChange={isReadOnly ? undefined : setCode}
-            readOnly={isReadOnly}
-            minHeight="100%"
-          />
+        <div className="flex-1 min-w-0 flex flex-col min-h-0 border-r border-gray-200">
+          {isReadOnly && onFork && (
+            <div
+              className={`flex items-center justify-between gap-3 px-4 py-2 bg-amber-50 border-b border-amber-200 shrink-0 ${bannerFlash ? 'banner-flash' : ''}`}
+              onAnimationEnd={() => setBannerFlash(false)}
+            >
+              <p className="text-sm text-amber-800">
+                This is a read-only preset. Fork it to create your own editable copy.
+              </p>
+              <button onClick={onFork} className="btn-sm shrink-0 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded px-3 py-1 text-sm font-medium">
+                Fork to edit
+              </button>
+            </div>
+          )}
+          <div
+            className="flex-1 overflow-auto"
+            onKeyDown={isReadOnly && onFork ? flashBanner : undefined}
+          >
+            <StrategyEditor
+              value={code}
+              onChange={isReadOnly ? undefined : setCode}
+              readOnly={isReadOnly}
+              minHeight="100%"
+            />
+          </div>
         </div>
 
         {/* API Reference sidebar */}

@@ -57,17 +57,6 @@ export default function CustomStrategyCard({ strategy, onChange, onEdit, onDelet
         </div>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-gray-100">
-        <label className="label text-xs">Starting Bankroll ($)</label>
-        <input
-          type="number"
-          className="input py-1 text-sm"
-          min={1}
-          step={100}
-          value={strategy.bankroll}
-          onChange={e => update({ bankroll: parseFloat(e.target.value) || 1000 })}
-        />
-      </div>
     </div>
   );
 }

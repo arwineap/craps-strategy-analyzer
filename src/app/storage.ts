@@ -1,42 +1,26 @@
-import { TableConfig, TableConfigJSON, DEFAULT_TABLES } from '../lib/table-config.js';
+import { DEFAULT_TABLES } from '../lib/table-config.js';
 import { PRESET_NAMES, PRESET_CODES } from '../lib/strategies/preset-codes.js';
-import type { PresetConfig, CustomStrategyDef, SimSettings } from './types.js';
+import type { PresetConfig, CustomStrategyDef, CustomTableDef, SimSettings } from './types.js';
 
 const KEYS = {
-  tables:          'craps:tables',
-  activeTableIdx:  'craps:activeTableIdx',
+  customTables:    'craps:customTables',
   presets:         'craps:presets',
   customStrategies:'craps:customStrategies',
   simSettings:     'craps:simSettings',
 } as const;
 
-// ── Tables ───────────────────────────────────────────────────────────────────
+// ── Custom tables ─────────────────────────────────────────────────────────────
 
-export function loadTables(): TableConfig[] {
+export function loadCustomTables(): CustomTableDef[] {
   try {
-    const raw = localStorage.getItem(KEYS.tables);
-    if (raw) {
-      const data: TableConfigJSON[] = JSON.parse(raw);
-      return data.map(d => TableConfig.fromJSON(d));
-    }
+    const raw = localStorage.getItem(KEYS.customTables);
+    if (raw) return JSON.parse(raw) as CustomTableDef[];
   } catch {}
-  return DEFAULT_TABLES.map(d => TableConfig.fromJSON(d));
+  return [];
 }
 
-export function saveTables(tables: TableConfig[]): void {
-  localStorage.setItem(KEYS.tables, JSON.stringify(tables.map(t => t.toJSON())));
-}
-
-export function loadActiveTableIdx(): number {
-  try {
-    const raw = localStorage.getItem(KEYS.activeTableIdx);
-    if (raw !== null) return parseInt(raw, 10);
-  } catch {}
-  return 0;
-}
-
-export function saveActiveTableIdx(idx: number): void {
-  localStorage.setItem(KEYS.activeTableIdx, String(idx));
+export function saveCustomTables(tables: CustomTableDef[]): void {
+  localStorage.setItem(KEYS.customTables, JSON.stringify(tables));
 }
 
 // ── Preset configs ───────────────────────────────────────────────────────────
@@ -44,7 +28,6 @@ export function saveActiveTableIdx(idx: number): void {
 const DEFAULT_PRESET_CONFIGS: PresetConfig[] = PRESET_NAMES.map(name => ({
   name,
   enabled: true,
-  bankroll: 1000,
 }));
 
 export function loadPresetConfigs(): PresetConfig[] {
@@ -65,7 +48,7 @@ export function loadPresetConfigs(): PresetConfig[] {
       const old: OldConfig[] = JSON.parse(legacy);
       const migrated: PresetConfig[] = old
         .filter(o => PRESET_CODES[o.preset] !== undefined)
-        .map(o => ({ name: o.preset, enabled: o.enabled, bankroll: o.bankroll }));
+        .map(o => ({ name: o.preset, enabled: o.enabled }));
       const knownNames = new Set(migrated.map(s => s.name));
       const missing = DEFAULT_PRESET_CONFIGS.filter(d => !knownNames.has(d.name));
       return [...migrated, ...missing];
@@ -94,7 +77,7 @@ export function saveCustomStrategies(strategies: CustomStrategyDef[]): void {
 
 // ── Sim settings ─────────────────────────────────────────────────────────────
 
-const DEFAULT_SIM_SETTINGS: SimSettings = { nGames: 500, maxRolls: 50_000 };
+const DEFAULT_SIM_SETTINGS: SimSettings = { nGames: 500, maxRolls: 90, bankroll: 200, selectedTableId: 'Vegas Strip $5 (3-4-5x)' };
 
 export function loadSimSettings(): SimSettings {
   try {

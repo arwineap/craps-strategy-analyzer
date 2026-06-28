@@ -17,22 +17,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const PRESET_CATEGORIES: Record<string, string> = {
-  'Pass Line + Max Odds':       'conservative',
-  "Don't Pass + Lay Odds":      'conservative',
-  'Place 6 & 8':                'conservative',
-  'Three Point Molly':          'conservative',
-  'Inside (5-6-8-9)':           'conservative',
-  'Infinite Molly':             'conservative',
-  'Casino Points':              'casino_points',
-  'Iron Cross':                 'high_reward',
-  'Iron Cross Hedge':           'high_reward',
-  'High Roller Props':          'high_reward',
-  'Across (4-5-6-8-9-10)':      'high_reward',
-  'Press & Regress (6/8)':      'high_reward',
-  'Place 6 & 8 - Press 1 Unit': 'high_reward',
-  'Come Ladder (7-unit)':       'high_reward',
-  '6/8 Build → Across':         'high_reward',
-  'Across → Infinity Come':     'high_reward',
+  'Pass Line + Max Odds':   'conservative',
+  "Don't Pass + Lay Odds":  'conservative',
+  'Place 6 & 8 w/ pass':   'conservative',
+  'Three Point Molly':      'conservative',
+  'Inside (5-6-8-9)':       'conservative',
+  'Across (4-5-6-8-9-10)':  'high_reward',
+  'Iron Cross':             'high_reward',
+  'Press & Regress (6/8)':  'high_reward',
 };
 
 export default function StrategyCard({ config, onChange, onView, onFork }: Props) {
@@ -64,17 +56,6 @@ export default function StrategyCard({ config, onChange, onView, onFork }: Props
         </div>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-gray-100">
-        <label className="label text-xs">Starting Bankroll ($)</label>
-        <input
-          type="number"
-          className="input py-1 text-sm"
-          min={1}
-          step={100}
-          value={config.bankroll}
-          onChange={e => update({ bankroll: parseFloat(e.target.value) || 1000 })}
-        />
-      </div>
     </div>
   );
 }

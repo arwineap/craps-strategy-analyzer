@@ -5,6 +5,7 @@ import SimulationPage from './simulation/SimulationPage.js';
 import StrategyManagerPage from './strategies/StrategyManagerPage.js';
 import AnalysisPage from './analysis/AnalysisPage.js';
 import TablesPage from './tables/TablesPage.js';
+import DocsModal from './docs/DocsModal.js';
 
 type Tab = 'simulation' | 'strategies' | 'analysis' | 'tables';
 
@@ -19,7 +20,8 @@ interface LayoutProps {
 
 export default function Layout({ run, cancel, running, progress, accumulators, error }: LayoutProps) {
   const [activeTab, setActiveTab] = useState<Tab>('simulation');
-  const { tables, activeTableIdx, setActiveTableIdx, simResult } = useAppContext();
+  const [docsOpen, setDocsOpen] = useState(false);
+  const { simResult } = useAppContext();
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'simulation', label: '🎲 Simulation' },
@@ -41,22 +43,16 @@ export default function Layout({ run, cancel, running, progress, accumulators, e
             </div>
           </div>
 
-          {/* Active table quick-switcher */}
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm hidden sm:inline">Table:</span>
-            <select
-              value={activeTableIdx}
-              onChange={e => setActiveTableIdx(parseInt(e.target.value, 10))}
-              className="bg-gray-800 text-white text-sm rounded-lg px-3 py-1.5 border border-gray-600 focus:outline-none focus:border-indigo-400"
-            >
-              {tables.map((t, i) => (
-                <option key={i} value={i}>{t.name}</option>
-              ))}
-              {tables.length === 0 && <option value={0}>No tables defined</option>}
-            </select>
-          </div>
+          <button
+            onClick={() => setDocsOpen(true)}
+            className="text-gray-300 hover:text-white text-sm font-medium transition-colors"
+          >
+            Docs
+          </button>
         </div>
       </header>
+
+      {docsOpen && <DocsModal onClose={() => setDocsOpen(false)} />}
 
       {/* Tab bar */}
       <nav className="bg-white border-b border-gray-200 shadow-sm">
@@ -95,6 +91,7 @@ export default function Layout({ run, cancel, running, progress, accumulators, e
             running={running}
             progress={progress}
             accumulators={accumulators}
+            onViewAnalysis={() => setActiveTab('analysis')}
           />
         )}
         {activeTab === 'strategies' && <StrategyManagerPage />}

@@ -1,4 +1,5 @@
 import type { SerializedAccumulator } from '../worker/simulation.worker.js';
+import type { FireBetPayouts, AllSmallTallPayouts } from '../lib/table-config.js';
 
 export type { SerializedAccumulator };
 
@@ -7,7 +8,6 @@ export type { SerializedAccumulator };
 export interface PresetConfig {
   name: string;
   enabled: boolean;
-  bankroll: number;
 }
 
 // ── Custom strategies ────────────────────────────────────────────────────────
@@ -18,7 +18,21 @@ export interface CustomStrategyDef {
   description: string;
   code: string;
   enabled: boolean;
-  bankroll: number;
+}
+
+// ── Custom tables ────────────────────────────────────────────────────────────
+
+export interface CustomTableDef {
+  id: string;
+  name: string;
+  tableMin: number;
+  odds: string;
+  vigPer: number;
+  fieldTriple12: boolean;
+  fireBetEnabled: boolean;
+  fireBetPayouts: FireBetPayouts;
+  allSmallTallEnabled: boolean;
+  allSmallTallPayouts: AllSmallTallPayouts;
 }
 
 // ── Worker ───────────────────────────────────────────────────────────────────
@@ -35,18 +49,14 @@ export interface WorkerStrategyConfig {
 export interface SimSettings {
   nGames: number;
   maxRolls: number;
+  bankroll: number;
   seed?: number;
+  selectedTableId?: string;
 }
 
 export interface RunConfig {
   strategyConfigs: WorkerStrategyConfig[];
-  tableData: {
-    name: string;
-    tableMin: number;
-    odds: string;
-    vigPer: number;
-    fieldTriple12: boolean;
-  };
+  tableData: import('../lib/table-config.js').TableConfigJSON;
   nGames: number;
   maxRolls: number;
   seed?: number;

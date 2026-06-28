@@ -13,21 +13,23 @@ interface Props {
   running: boolean;
   progress: number;
   accumulators: SerializedAccumulator[];
+  onViewAnalysis: () => void;
 }
 
 type SortCol = 'name' | 'avgRolls' | 'roi' | 'avgPeak' | 'doubled' | 'bust';
 type SortDir = 'asc' | 'desc';
 
-export default function SimulationPage({ run, cancel, running, progress, accumulators }: Props) {
+export default function SimulationPage({ run, cancel, running, progress, accumulators, onViewAnalysis }: Props) {
   const { activeTable, presetConfigs, customStrategies, simSettings, setSimSettings } = useAppContext();
 
+  const { bankroll } = simSettings;
   const allEnabled: WorkerStrategyConfig[] = [
     ...presetConfigs
       .filter(p => p.enabled && PRESET_CODES[p.name])
-      .map(p => ({ name: p.name, code: PRESET_CODES[p.name], bankroll: p.bankroll })),
+      .map(p => ({ name: p.name, code: PRESET_CODES[p.name], bankroll })),
     ...customStrategies
       .filter(c => c.enabled)
-      .map(c => ({ name: c.name, code: c.code, bankroll: c.bankroll })),
+      .map(c => ({ name: c.name, code: c.code, bankroll })),
   ];
 
   const [selected, setSelected] = useState<Set<string>>(() => new Set(allEnabled.map(s => s.name)));
@@ -74,7 +76,6 @@ export default function SimulationPage({ run, cancel, running, progress, accumul
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold">Simulation</h2>
-          <p className="text-sm text-gray-500">Table: <strong>{activeTable.name}</strong></p>
         </div>
         <div className="flex gap-2">
           {running ? (
@@ -119,7 +120,14 @@ export default function SimulationPage({ run, cancel, running, progress, accumul
       {accumulators.length > 0 && <LiveChart accumulators={accumulators} />}
 
       {accumulators.length > 0 && !running && (
-        <SummaryTable accumulators={accumulators} sortCol={sortCol} sortDir={sortDir} onSort={(col, dir) => { setSortCol(col); setSortDir(dir); }} />
+        <>
+          <SummaryTable accumulators={accumulators} sortCol={sortCol} sortDir={sortDir} onSort={(col, dir) => { setSortCol(col); setSortDir(dir); }} />
+          <div className="flex justify-center pt-2">
+            <button className="btn-primary" onClick={onViewAnalysis}>
+              View Full Analysis →
+            </button>
+          </div>
+        </>
       )}
 
       {accumulators.length === 0 && !running && (

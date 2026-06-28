@@ -11,7 +11,7 @@ import TableEditor from './TableEditor.js';
 type Mode = 'list' | 'add' | 'edit';
 
 export default function TablesPage() {
-  const { tables, setTables, activeTableIdx, setActiveTableIdx, strategyConfigs } = useAppContext();
+  const { tables, setTables, activeTableIdx, setActiveTableIdx, customStrategies } = useAppContext();
   const [mode, setMode] = useState<Mode>('list');
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -100,7 +100,7 @@ export default function TablesPage() {
           </button>
           <button
             className="btn-secondary btn-sm"
-            onClick={() => exportBundle(tables[activeTableIdx], strategyConfigs)}
+            onClick={() => exportBundle(tables[activeTableIdx], customStrategies)}
           >
             Export Bundle
           </button>

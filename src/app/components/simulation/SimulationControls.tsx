@@ -25,16 +25,17 @@ export default function SimulationControls({ settings, onChange }: Props) {
         </div>
 
         <div>
-          <label className="label">Max Rolls / Game</label>
-          <select
+          <label className="label">Rolls / Game</label>
+          <input
+            type="number"
             className="input"
+            min={1}
             value={settings.maxRolls}
-            onChange={e => onChange({ ...settings, maxRolls: parseInt(e.target.value, 10) })}
-          >
-            {[1000, 5000, 10000, 50000].map(n => (
-              <option key={n} value={n}>{n.toLocaleString()}</option>
-            ))}
-          </select>
+            onChange={e => {
+              const val = parseInt(e.target.value, 10);
+              if (val > 0) onChange({ ...settings, maxRolls: val });
+            }}
+          />
         </div>
 
         <div>

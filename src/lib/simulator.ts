@@ -160,11 +160,13 @@ export class Simulator {
 
       // Strategy places bets
       const actions = strategy.decideBets(game, bankroll, tableValue);
+      let anyBetPlaced = false;
       for (const action of actions) {
         const cost = action.execute(game, bankroll);
         bankroll -= cost;
         tableValue += cost - action.vigAmount;
         if (cost > 0) {
+          anyBetPlaced = true;
           totalWagered += cost;
           if (action.isRated) casinoPoints += cost;
         }
@@ -195,6 +197,7 @@ export class Simulator {
         bankroll -= cost;
         tableValue += cost - action.vigAmount;
         if (cost > 0) {
+          anyBetPlaced = true;
           totalWagered += cost;
           if (action.isRated) casinoPoints += cost;
         }
@@ -207,7 +210,7 @@ export class Simulator {
       if (rollNum % SAMPLE_EVERY === 0) samples.push(assets);
 
       // Idle-bust detection
-      if (!game.activeBets.length && !actions.length && !pressActions.length) {
+      if (!game.activeBets.length && !anyBetPlaced) {
         if (++idleRolls > 40) break;
       } else {
         idleRolls = 0;

@@ -1,12 +1,13 @@
 import { TableConfig, TableConfigJSON, DEFAULT_TABLES } from '../lib/table-config.js';
-import { PRESET_STRATEGIES } from '../lib/strategies/presets.js';
-import type { StrategyConfig, SimSettings } from './types.js';
+import { PRESET_NAMES, PRESET_CODES } from '../lib/strategies/preset-codes.js';
+import type { PresetConfig, CustomStrategyDef, SimSettings } from './types.js';
 
 const KEYS = {
-  tables: 'craps:tables',
-  activeTableIdx: 'craps:activeTableIdx',
-  strategies: 'craps:strategies',
-  simSettings: 'craps:simSettings',
+  tables:          'craps:tables',
+  activeTableIdx:  'craps:activeTableIdx',
+  presets:         'craps:presets',
+  customStrategies:'craps:customStrategies',
+  simSettings:     'craps:simSettings',
 } as const;
 
 // ── Tables ───────────────────────────────────────────────────────────────────
@@ -38,31 +39,57 @@ export function saveActiveTableIdx(idx: number): void {
   localStorage.setItem(KEYS.activeTableIdx, String(idx));
 }
 
-// ── Strategies ───────────────────────────────────────────────────────────────
+// ── Preset configs ───────────────────────────────────────────────────────────
 
-const DEFAULT_STRATEGY_CONFIGS: StrategyConfig[] = Object.keys(PRESET_STRATEGIES).map(name => ({
-  preset: name,
+const DEFAULT_PRESET_CONFIGS: PresetConfig[] = PRESET_NAMES.map(name => ({
+  name,
   enabled: true,
   bankroll: 1000,
-  params: {},
 }));
 
-export function loadStrategyConfigs(): StrategyConfig[] {
+export function loadPresetConfigs(): PresetConfig[] {
   try {
-    const raw = localStorage.getItem(KEYS.strategies);
+    // New format
+    const raw = localStorage.getItem(KEYS.presets);
     if (raw) {
-      const saved: StrategyConfig[] = JSON.parse(raw);
-      // Merge: ensure all known presets are present (handles new presets added after save)
-      const knownNames = new Set(saved.map(s => s.preset));
-      const missing = DEFAULT_STRATEGY_CONFIGS.filter(d => !knownNames.has(d.preset));
+      const saved: PresetConfig[] = JSON.parse(raw);
+      const knownNames = new Set(saved.map(s => s.name));
+      const missing = DEFAULT_PRESET_CONFIGS.filter(d => !knownNames.has(d.name));
       return [...saved, ...missing];
     }
+
+    // Migration: old format used 'craps:strategies' with { preset, enabled, bankroll, params }
+    const legacy = localStorage.getItem('craps:strategies');
+    if (legacy) {
+      type OldConfig = { preset: string; enabled: boolean; bankroll: number };
+      const old: OldConfig[] = JSON.parse(legacy);
+      const migrated: PresetConfig[] = old
+        .filter(o => PRESET_CODES[o.preset] !== undefined)
+        .map(o => ({ name: o.preset, enabled: o.enabled, bankroll: o.bankroll }));
+      const knownNames = new Set(migrated.map(s => s.name));
+      const missing = DEFAULT_PRESET_CONFIGS.filter(d => !knownNames.has(d.name));
+      return [...migrated, ...missing];
+    }
   } catch {}
-  return DEFAULT_STRATEGY_CONFIGS;
+  return DEFAULT_PRESET_CONFIGS;
 }
 
-export function saveStrategyConfigs(configs: StrategyConfig[]): void {
-  localStorage.setItem(KEYS.strategies, JSON.stringify(configs));
+export function savePresetConfigs(configs: PresetConfig[]): void {
+  localStorage.setItem(KEYS.presets, JSON.stringify(configs));
+}
+
+// ── Custom strategies ────────────────────────────────────────────────────────
+
+export function loadCustomStrategies(): CustomStrategyDef[] {
+  try {
+    const raw = localStorage.getItem(KEYS.customStrategies);
+    if (raw) return JSON.parse(raw) as CustomStrategyDef[];
+  } catch {}
+  return [];
+}
+
+export function saveCustomStrategies(strategies: CustomStrategyDef[]): void {
+  localStorage.setItem(KEYS.customStrategies, JSON.stringify(strategies));
 }
 
 // ── Sim settings ─────────────────────────────────────────────────────────────

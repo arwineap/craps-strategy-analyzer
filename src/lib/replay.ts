@@ -53,8 +53,10 @@ export function replayGame(
     const assetsBefore = totalAssets;
 
     const actions = strategy.decideBets(game, bankroll, tableValue);
+    let anyBetPlaced = false;
     for (const action of actions) {
       const cost = action.execute(game, bankroll);
+      if (cost > 0) anyBetPlaced = true;
       bankroll -= cost;
       tableValue += cost - action.vigAmount;
     }
@@ -95,6 +97,7 @@ export function replayGame(
     const pressActions = strategy.onResults(results, game, bankroll, tableValue);
     for (const action of pressActions) {
       const cost = action.execute(game, bankroll);
+      if (cost > 0) anyBetPlaced = true;
       bankroll -= cost;
       tableValue += cost - action.vigAmount;
     }
@@ -115,7 +118,7 @@ export function replayGame(
       delta: assetsAfter - assetsBefore,
     });
 
-    if (!game.activeBets.length && !actions.length && !pressActions.length) {
+    if (!game.activeBets.length && !anyBetPlaced) {
       if (++idleRolls > 40) break;
     } else {
       idleRolls = 0;

@@ -32,6 +32,16 @@ export enum BetType {
   BUY_10          = 'Buy 10',
   BIG_6           = 'Big 6',
   BIG_8           = 'Big 8',
+  LAY_4           = 'Lay 4',
+  LAY_5           = 'Lay 5',
+  LAY_6           = 'Lay 6',
+  LAY_8           = 'Lay 8',
+  LAY_9           = 'Lay 9',
+  LAY_10          = 'Lay 10',
+  FIRE_BET        = 'Fire Bet',
+  ALL_BET         = 'All',
+  SMALL_BET       = 'Small',
+  TALL_BET        = 'Tall',
 }
 
 export enum BetOutcome {
@@ -75,6 +85,16 @@ export const HOUSE_EDGE: Partial<Record<BetType, number>> = {
   [BetType.BUY_8]:          4.76,
   [BetType.BUY_9]:          4.76,
   [BetType.BUY_10]:         4.76,
+  [BetType.LAY_4]:          2.44,
+  [BetType.LAY_5]:          3.23,
+  [BetType.LAY_6]:          4.00,
+  [BetType.LAY_8]:          4.00,
+  [BetType.LAY_9]:          3.23,
+  [BetType.LAY_10]:         2.44,
+  [BetType.FIRE_BET]:      24.86,
+  [BetType.ALL_BET]:       23.04,
+  [BetType.SMALL_BET]:     23.04,
+  [BetType.TALL_BET]:      23.04,
 };
 
 export const RATED_BETS = new Set<BetType>([
@@ -89,6 +109,9 @@ export const RATED_BETS = new Set<BetType>([
   BetType.BIG_6, BetType.BIG_8,
   BetType.BUY_4, BetType.BUY_5, BetType.BUY_6,
   BetType.BUY_8, BetType.BUY_9, BetType.BUY_10,
+  BetType.LAY_4, BetType.LAY_5, BetType.LAY_6,
+  BetType.LAY_8, BetType.LAY_9, BetType.LAY_10,
+  BetType.FIRE_BET, BetType.ALL_BET, BetType.SMALL_BET, BetType.TALL_BET,
 ]);
 
 export const PLACE_NUMBER: Partial<Record<BetType, number>> = {
@@ -119,6 +142,27 @@ export const BUY_NUMBER: Partial<Record<BetType, number>> = {
 
 export const BUY_BET_TYPES = new Set<BetType>(Object.keys(BUY_NUMBER) as BetType[]);
 
+// Lay bets: wrong-way bet on a number, wins if 7 comes first; vig on the win
+export const LAY_NUMBER: Partial<Record<BetType, number>> = {
+  [BetType.LAY_4]: 4, [BetType.LAY_5]: 5, [BetType.LAY_6]: 6,
+  [BetType.LAY_8]: 8, [BetType.LAY_9]: 9, [BetType.LAY_10]: 10,
+};
+export const LAY_BET_TYPES = new Set<BetType>(Object.keys(LAY_NUMBER) as BetType[]);
+// Lay payout [n, d]: win (amount / d) * n before vig — inverse of true pass-line odds
+export const LAY_PAYOUT: Partial<Record<BetType, [number, number]>> = {
+  [BetType.LAY_4]:  [1, 2],
+  [BetType.LAY_5]:  [2, 3],
+  [BetType.LAY_6]:  [5, 6],
+  [BetType.LAY_8]:  [5, 6],
+  [BetType.LAY_9]:  [2, 3],
+  [BetType.LAY_10]: [1, 2],
+};
+
+// All/Small/Tall required-number bitmasks (bit N set means number N is required)
+export const SMALL_REQUIRED_MASK = (1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6);
+export const TALL_REQUIRED_MASK  = (1<<8)|(1<<9)|(1<<10)|(1<<11)|(1<<12);
+export const ALL_REQUIRED_MASK   = SMALL_REQUIRED_MASK | TALL_REQUIRED_MASK;
+
 // Standard 3-4-5x odds table
 export const ODDS_MAX_MULTIPLIER: Record<number, number> = {
   4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3,
@@ -135,6 +179,8 @@ export class ActiveBet {
   oddsAmount: number;
   winCount: number;
   working: boolean;
+  /** Bitmask tracking rolled numbers for FIRE_BET, ALL_BET, SMALL_BET, TALL_BET */
+  pointsMask: number;
 
   constructor(
     betType: BetType,
@@ -150,6 +196,7 @@ export class ActiveBet {
     this.oddsAmount = oddsAmount;
     this.winCount = winCount;
     this.working = working;
+    this.pointsMask = 0;
   }
 
   get totalAtRisk(): number {

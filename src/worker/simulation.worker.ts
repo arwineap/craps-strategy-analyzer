@@ -1,18 +1,17 @@
 /// <reference lib="webworker" />
 
 import { TableConfig } from '../lib/table-config.js';
+import { CodeStrategy } from '../lib/strategies/code-strategy.js';
 import { Simulator, StrategyAccumulator } from '../lib/simulator.js';
-import { buildStrategy } from '../lib/strategies/presets.js';
 
-export interface StrategyConfig {
-  preset: string;
-  enabled: boolean;
+export interface WorkerStrategyConfig {
+  name: string;
+  code: string;
   bankroll: number;
-  params: Record<string, number | boolean>;
 }
 
 export interface RunConfig {
-  strategyConfigs: StrategyConfig[];
+  strategyConfigs: WorkerStrategyConfig[];
   tableData: ReturnType<TableConfig['toJSON']>;
   nGames: number;
   maxRolls: number;
@@ -64,16 +63,17 @@ self.addEventListener('message', (e: MessageEvent<{ type: 'run'; config: RunConf
   try {
     const tableConfig = TableConfig.fromJSON(config.tableData);
 
-    const strategies = config.strategyConfigs.map(sc =>
-      buildStrategy(sc.preset, sc.bankroll, tableConfig.tableMin, sc.params, tableConfig)
-    );
+    const strategies = config.strategyConfigs.map(sc => {
+      const s = new CodeStrategy(sc.code, sc.bankroll, tableConfig.tableMin, tableConfig);
+      (s as unknown as { name: string }).name = sc.name;
+      return s;
+    });
 
     const rngSeed = config.seed ?? Math.floor(Math.random() * 2 ** 31);
 
     const simulator = new Simulator();
     const gen = simulator.runStream(strategies, config.nGames, config.maxRolls, rngSeed, tableConfig);
 
-    // Post at most ~200 UI updates regardless of total game count
     const interval = Math.max(1, Math.floor(config.nGames / 200));
     let lastAccumulators: SerializedAccumulator[] = [];
 

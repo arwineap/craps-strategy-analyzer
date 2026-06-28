@@ -48,8 +48,9 @@ export default function GameBrowser({ accumulators, seed, runConfig }: Props) {
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
               <th className="text-left px-4 py-2.5 font-semibold text-gray-700">Game</th>
-              <th className="text-right px-3 py-2.5 font-semibold text-gray-700">Final</th>
+              <th className="text-right px-3 py-2.5 font-semibold text-gray-700">Result</th>
               <th className="text-right px-3 py-2.5 font-semibold text-gray-700">Rolls</th>
+              <th className="text-right px-3 py-2.5 font-semibold text-gray-700">Final</th>
               <th className="text-right px-3 py-2.5 font-semibold text-gray-700">Peak</th>
               <th className="text-right px-3 py-2.5 font-semibold text-gray-700">P&L</th>
             </tr>
@@ -61,6 +62,15 @@ export default function GameBrowser({ accumulators, seed, runConfig }: Props) {
               const rolls = acc.rollsPerGame[start + i];
               const peak = acc.peakBankrolls[start + i];
               const pnl = final - acc.initialBankroll;
+              const multiple = final / acc.initialBankroll;
+              const badge =
+                final === 0
+                  ? { label: 'Bust', cls: 'bg-red-100 text-red-700' }
+                  : multiple >= 3
+                  ? { label: '3x+', cls: 'bg-emerald-100 text-emerald-700' }
+                  : multiple >= 2
+                  ? { label: '2x', cls: 'bg-green-100 text-green-700' }
+                  : { label: 'Survived', cls: 'bg-gray-100 text-gray-600' };
               return (
                 <tr
                   key={gn}
@@ -68,10 +78,15 @@ export default function GameBrowser({ accumulators, seed, runConfig }: Props) {
                   onClick={() => setSelected({ gameNum: gn, stratIdx })}
                 >
                   <td className="px-4 py-2 text-gray-500 tabular-nums">#{gn}</td>
+                  <td className="text-right px-3 py-2">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+                  </td>
+                  <td className="text-right px-3 py-2 tabular-nums text-gray-600">{rolls}</td>
                   <td className="text-right px-3 py-2 tabular-nums font-medium text-gray-800">
                     ${final.toFixed(0)}
                   </td>
-                  <td className="text-right px-3 py-2 tabular-nums text-gray-600">{rolls}</td>
                   <td className="text-right px-3 py-2 tabular-nums text-gray-600">${peak.toFixed(0)}</td>
                   <td className={`text-right px-3 py-2 tabular-nums font-semibold ${pnl >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                     {pnl >= 0 ? '+' : ''}${pnl.toFixed(0)}

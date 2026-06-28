@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
-import { STRATEGY_PARAMS } from '../../../lib/strategies/config.js';
-import type { StrategyConfig } from '../../types.js';
-import { exportStrategy } from '../../export.js';
-import StrategyParamEditor from './StrategyParamEditor.js';
+import React from 'react';
+import type { PresetConfig } from '../../types.js';
+import { PRESET_CODES } from '../../../lib/strategies/preset-codes.js';
 
 interface Props {
-  config: StrategyConfig;
-  onChange: (config: StrategyConfig) => void;
+  config: PresetConfig;
+  onChange: (config: PresetConfig) => void;
+  onView: () => void;
+  onFork: () => void;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  conservative: 'Conservative',
-  high_reward: 'High Reward',
+  conservative:  'Conservative',
+  high_reward:   'High Reward',
   casino_points: 'Casino Points',
+  custom:        'Custom',
 };
 
-// Derive category from preset name (matches strategy class properties)
 const PRESET_CATEGORIES: Record<string, string> = {
   'Pass Line + Max Odds':       'conservative',
   "Don't Pass + Lay Odds":      'conservative',
@@ -35,12 +35,9 @@ const PRESET_CATEGORIES: Record<string, string> = {
   'Across → Infinity Come':     'high_reward',
 };
 
-export default function StrategyCard({ config, onChange }: Props) {
-  const [expanded, setExpanded] = useState(false);
-  const params = STRATEGY_PARAMS[config.preset] ?? [];
-  const category = PRESET_CATEGORIES[config.preset] ?? 'custom';
-
-  const update = (partial: Partial<StrategyConfig>) => onChange({ ...config, ...partial });
+export default function StrategyCard({ config, onChange, onView, onFork }: Props) {
+  const category = PRESET_CATEGORIES[config.name] ?? 'custom';
+  const update   = (partial: Partial<PresetConfig>) => onChange({ ...config, ...partial });
 
   return (
     <div className={`card ${!config.enabled ? 'opacity-60' : ''}`}>
@@ -50,53 +47,34 @@ export default function StrategyCard({ config, onChange }: Props) {
             type="checkbox"
             checked={config.enabled}
             onChange={e => update({ enabled: e.target.checked })}
-            className="mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            className="mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 shrink-0"
           />
           <div className="min-w-0">
-            <h3 className="font-semibold text-sm text-gray-900 leading-tight">{config.preset}</h3>
-            <span className={`badge-${category} badge mt-1`}>{CATEGORY_LABELS[category] ?? category}</span>
+            <h3 className="font-semibold text-sm text-gray-900 leading-tight">{config.name}</h3>
+            <span className={`badge badge-${category} mt-1`}>{CATEGORY_LABELS[category]}</span>
           </div>
         </div>
         <div className="flex gap-1 shrink-0">
-          <button
-            onClick={() => exportStrategy(config)}
-            className="btn-secondary btn-sm"
-            title="Export recipe"
-          >
-            Export
+          <button onClick={onView} className="btn-secondary btn-sm" title="Read-only code view">
+            View Code
           </button>
-          <button
-            onClick={() => setExpanded(x => !x)}
-            className="btn-secondary btn-sm"
-          >
-            {expanded ? '▲' : '▼'}
+          <button onClick={onFork} className="btn-secondary btn-sm" title="Fork into My Strategies">
+            Fork
           </button>
         </div>
       </div>
 
-      {expanded && (
-        <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
-          <div>
-            <label className="label text-xs">Starting Bankroll ($)</label>
-            <input
-              type="number" className="input py-1 text-sm" min={1} step={100}
-              value={config.bankroll}
-              onChange={e => update({ bankroll: parseFloat(e.target.value) || 1000 })}
-            />
-          </div>
-
-          {params.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-gray-600 mb-2">Parameters</p>
-              <StrategyParamEditor
-                params={params}
-                values={config.params}
-                onChange={(key, val) => update({ params: { ...config.params, [key]: val } })}
-              />
-            </div>
-          )}
-        </div>
-      )}
+      <div className="mt-3 pt-3 border-t border-gray-100">
+        <label className="label text-xs">Starting Bankroll ($)</label>
+        <input
+          type="number"
+          className="input py-1 text-sm"
+          min={1}
+          step={100}
+          value={config.bankroll}
+          onChange={e => update({ bankroll: parseFloat(e.target.value) || 1000 })}
+        />
+      </div>
     </div>
   );
 }

@@ -2,12 +2,35 @@ import type { SerializedAccumulator } from '../worker/simulation.worker.js';
 
 export type { SerializedAccumulator };
 
-export interface StrategyConfig {
-  preset: string;
+// ── Preset strategies ────────────────────────────────────────────────────────
+
+export interface PresetConfig {
+  name: string;
   enabled: boolean;
   bankroll: number;
-  params: Record<string, number | boolean>;
 }
+
+// ── Custom strategies ────────────────────────────────────────────────────────
+
+export interface CustomStrategyDef {
+  id: string;
+  name: string;
+  description: string;
+  code: string;
+  enabled: boolean;
+  bankroll: number;
+}
+
+// ── Worker ───────────────────────────────────────────────────────────────────
+
+/** Unified shape sent to the simulation worker for each strategy */
+export interface WorkerStrategyConfig {
+  name: string;
+  code: string;
+  bankroll: number;
+}
+
+// ── Simulation settings ──────────────────────────────────────────────────────
 
 export interface SimSettings {
   nGames: number;
@@ -15,15 +38,8 @@ export interface SimSettings {
   seed?: number;
 }
 
-export interface SimResultData {
-  totalGames: number;
-  accumulators: SerializedAccumulator[];
-  seed: number;
-  runConfig: RunConfig;
-}
-
 export interface RunConfig {
-  strategyConfigs: StrategyConfig[];
+  strategyConfigs: WorkerStrategyConfig[];
   tableData: {
     name: string;
     tableMin: number;
@@ -34,4 +50,11 @@ export interface RunConfig {
   nGames: number;
   maxRolls: number;
   seed?: number;
+}
+
+export interface SimResultData {
+  totalGames: number;
+  accumulators: SerializedAccumulator[];
+  seed: number;
+  runConfig: RunConfig;
 }

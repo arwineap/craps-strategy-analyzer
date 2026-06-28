@@ -3,7 +3,7 @@ import {
   Chart, LineController, LineElement, PointElement,
   LinearScale, CategoryScale, Tooltip,
 } from 'chart.js';
-import { buildStrategy } from '../../../lib/strategies/presets.js';
+import { CodeStrategy } from '../../../lib/strategies/code-strategy.js';
 import { TableConfig } from '../../../lib/table-config.js';
 import { replayGame } from '../../../lib/replay.js';
 import type { SerializedAccumulator, RunConfig } from '../../types.js';
@@ -38,7 +38,7 @@ export default function GameReplayModal({ gameNum, stratIdx, accumulators, seed,
     const sc = runConfig.strategyConfigs[stratIdx];
     if (!sc) return null;
     const tableConfig = TableConfig.fromJSON(runConfig.tableData);
-    const strategy = buildStrategy(sc.preset, sc.bankroll, tableConfig.tableMin, sc.params, tableConfig);
+    const strategy = new CodeStrategy(sc.code, sc.bankroll, tableConfig.tableMin, tableConfig);
     return replayGame(strategy, gameNum, seed, runConfig.maxRolls, tableConfig);
   }, [gameNum, stratIdx, seed, runConfig]);
 

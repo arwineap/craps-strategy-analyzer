@@ -61,6 +61,10 @@
     @apply badge bg-purple-100 text-purple-700;
   }
 
+  .badge-custom {
+    @apply badge bg-gray-100 text-gray-600;
+  }
+
   .tab {
     @apply px-4 py-2 text-sm font-medium border-b-2 transition-colors;
   }

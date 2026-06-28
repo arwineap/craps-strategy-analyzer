@@ -2,6 +2,9 @@ import { Dice, DiceRoll } from './dice.js';
 import {
   ActiveBet, BetOutcome, BetResult, BetType,
   BUY_BET_TYPES, BUY_NUMBER, ODDS_PAYOUT, PLACE_NUMBER, PLACE_PAYOUT,
+  LAY_BET_TYPES, LAY_NUMBER, LAY_PAYOUT,
+  ALL_REQUIRED_MASK, SMALL_REQUIRED_MASK, TALL_REQUIRED_MASK,
+  computeVig,
 } from './bets.js';
 import { TableConfig } from './table-config.js';
 
@@ -115,8 +118,8 @@ export class CrapsGame {
 
   private validateBet(betType: BetType, amount: number): void {
     if (amount <= 0) throw new Error('Bet amount must be positive');
-    if ((betType === BetType.PASS_LINE || betType === BetType.DONT_PASS) && this.phase !== GamePhase.COME_OUT) {
-      throw new Error('Pass Line / Don\'t Pass can only be placed on the come-out roll');
+    if ((betType === BetType.PASS_LINE || betType === BetType.DONT_PASS || betType === BetType.FIRE_BET) && this.phase !== GamePhase.COME_OUT) {
+      throw new Error('Pass Line / Don\'t Pass / Fire Bet can only be placed on the come-out roll');
     }
     if ((betType === BetType.COME || betType === BetType.DONT_COME) && this.phase !== GamePhase.POINT) {
       throw new Error('Come / Don\'t Come can only be placed during the point phase');
@@ -280,6 +283,61 @@ export class CrapsGame {
       const target = bt === BetType.BIG_6 ? 6 : 8;
       if (t === target) return this.win(bet, bet.amount);
       if (t === 7) return this.lose(bet);
+      return new BetResult(bet, BetOutcome.IN_PLAY, 0, false);
+    }
+
+    // ── Lay bets ────────────────────────────────────────────────────────────
+    // Always working. Win if 7 rolls first; lose if the number rolls. Vig on win.
+    if (LAY_BET_TYPES.has(bt)) {
+      const num = LAY_NUMBER[bt]!;
+      if (t === 7) {
+        const [n, d] = LAY_PAYOUT[bt]!;
+        const gross = (bet.amount / d) * n;
+        const vig   = this.tableConfig ? this.tableConfig.computeVig(gross) : computeVig(gross);
+        return this.win(bet, gross - vig);
+      }
+      if (t === num) return this.lose(bet);
+      return new BetResult(bet, BetOutcome.IN_PLAY, 0, false);
+    }
+
+    // ── Fire Bet ────────────────────────────────────────────────────────────
+    // Placed on come-out. Tracks unique points made this shooter's hand.
+    // Resolves only on seven-out (7 while in point phase).
+    if (bt === BetType.FIRE_BET) {
+      if (this.phase === GamePhase.POINT) {
+        if (t === this.point) {
+          // Point made — record it and stay in play
+          bet.pointsMask |= (1 << t);
+          return new BetResult(bet, BetOutcome.IN_PLAY, 0, false);
+        }
+        if (t === 7) {
+          const unique = [4, 5, 6, 8, 9, 10].filter(p => (bet.pointsMask >> p) & 1).length;
+          const p = this.tableConfig?.fireBetPayouts ?? { pts4: 25, pts5: 250, pts6: 1000 };
+          if (unique >= 6) return this.win(bet, p.pts6 * bet.amount);
+          if (unique >= 5) return this.win(bet, p.pts5 * bet.amount);
+          if (unique >= 4) return this.win(bet, p.pts4 * bet.amount);
+          return this.lose(bet);
+        }
+      }
+      return new BetResult(bet, BetOutcome.IN_PLAY, 0, false);
+    }
+
+    // ── All / Small / Tall ──────────────────────────────────────────────────
+    // Continuous bets: accumulate rolled numbers, win when all required hit.
+    // Lose on any 7.
+    if (bt === BetType.SMALL_BET || bt === BetType.TALL_BET || bt === BetType.ALL_BET) {
+      if (t === 7) return this.lose(bet);
+      bet.pointsMask |= (1 << t);
+      const required = bt === BetType.SMALL_BET ? SMALL_REQUIRED_MASK
+                     : bt === BetType.TALL_BET   ? TALL_REQUIRED_MASK
+                                                 : ALL_REQUIRED_MASK;
+      if ((bet.pointsMask & required) === required) {
+        const p = this.tableConfig?.allSmallTallPayouts ?? { small: 34, tall: 34, all: 150 };
+        const mult = bt === BetType.SMALL_BET ? p.small
+                   : bt === BetType.TALL_BET   ? p.tall
+                                               : p.all;
+        return this.win(bet, mult * bet.amount);
+      }
       return new BetResult(bet, BetOutcome.IN_PLAY, 0, false);
     }
 

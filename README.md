@@ -4,13 +4,15 @@ A fully in-browser craps betting strategy simulator. No server required — runs
 
 ## Features
 
-- **16 built-in strategies** — conservative, high-reward, and casino-points-focused
-- **Configurable parameters** — adjust bet sizes, odds multipliers, and more per strategy
-- **Live simulation charts** — watch bankroll curves update in real time via Web Worker
-- **KPI analysis** — ROI, Sharpe ratio, house edge, casino comp estimates, and more
-- **Casino table management** — define tables with custom minimums, odds, and rules
-- **Export / Import** — share strategy "recipes" and table configs as JSON (great for social media)
-- **Persistent storage** — tables and strategy settings survive browser sessions via localStorage
+- **7 built-in strategies** — Pass Line + Max Odds, Place 6 & 8, Three Point Molly, Inside, Across, Iron Cross, Press & Regress
+- **Custom strategies** — write betting logic as JavaScript snippets with a full strategy API; fork any preset as a starting point
+- **Live simulation charts** — bankroll curves update in real time via Web Worker
+- **KPI analysis** — ROI, bust rate, double-up rate, average peak bankroll, and more per strategy
+- **Game replay** — browse individual simulated games and replay them roll by roll
+- **5 preset casino tables** — common Vegas and Downtown configurations; add your own to match your casino
+- **Export / Import** — share strategies and table configs as JSON; copy a strategy as a share URL
+- **In-app docs** — full strategy API reference and table settings guide built into the app
+- **Persistent storage** — strategies and settings survive browser sessions via localStorage
 
 ## Tech Stack
 
@@ -47,12 +49,12 @@ All exports are versioned JSON envelopes:
   "type": "bundle",
   "table": { "name": "...", "tableMin": 25, "odds": "3-4-5x", "vigPer": 20, "fieldTriple12": false },
   "strategies": [
-    { "preset": "Iron Cross", "enabled": true, "bankroll": 1000, "params": { "fieldBet": 25 } }
+    { "name": "Iron Cross", "code": "..." }
   ]
 }
 ```
 
-Types: `"bundle"` (table + strategies), `"table"` (single table), `"strategy"` (single strategy config).
+Types: `"bundle"` (table + strategies), `"table"` (single table), `"strategy"` (single strategy).
 
 ## Project Structure
 
@@ -65,10 +67,12 @@ src/
     table-config.ts
     simulator.ts
     statistics.ts
+    replay.ts
     strategies/
-      base.ts
-      presets.ts
-      config.ts
+      api-types.ts     # Strategy API type definitions
+      base.ts          # Base strategy class
+      code-strategy.ts # Executes user-written JS snippets
+      preset-codes.ts  # Built-in strategy source code
   worker/
     simulation.worker.ts
   app/
@@ -79,6 +83,7 @@ src/
       useSimulation.ts
     components/
       Layout.tsx
+      docs/            # In-app documentation modal
       simulation/
       strategies/
       analysis/

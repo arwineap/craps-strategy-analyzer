@@ -62,15 +62,16 @@ export default function GameBrowser({ accumulators, seed, runConfig }: Props) {
               const rolls = acc.rollsPerGame[start + i];
               const peak = acc.peakBankrolls[start + i];
               const pnl = final - acc.initialBankroll;
-              const multiple = final / acc.initialBankroll;
-              const badge =
-                final === 0
-                  ? { label: 'Bust', cls: 'bg-red-100 text-red-700' }
-                  : multiple >= 3
-                  ? { label: '3x+', cls: 'bg-emerald-100 text-emerald-700' }
-                  : multiple >= 2
-                  ? { label: '2x', cls: 'bg-green-100 text-green-700' }
-                  : { label: 'Survived', cls: 'bg-gray-100 text-gray-600' };
+              const peakMultiple = peak / acc.initialBankroll;
+              const busted = final === 0;
+              const endBadge = busted
+                ? { label: 'Bust', cls: 'bg-red-100 text-red-700' }
+                : { label: 'Survived', cls: 'bg-gray-100 text-gray-600' };
+              const peakBadge = peakMultiple >= 3
+                ? { label: '3x+', cls: 'bg-emerald-100 text-emerald-700' }
+                : peakMultiple >= 2
+                ? { label: '2x', cls: 'bg-green-100 text-green-700' }
+                : null;
               return (
                 <tr
                   key={gn}
@@ -79,9 +80,16 @@ export default function GameBrowser({ accumulators, seed, runConfig }: Props) {
                 >
                   <td className="px-4 py-2 text-gray-500 tabular-nums">#{gn}</td>
                   <td className="text-right px-3 py-2">
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${badge.cls}`}>
-                      {badge.label}
-                    </span>
+                    <div className="flex gap-1 justify-end flex-wrap">
+                      {peakBadge && (
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${peakBadge.cls}`}>
+                          {peakBadge.label}
+                        </span>
+                      )}
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${endBadge.cls}`}>
+                        {endBadge.label}
+                      </span>
+                    </div>
                   </td>
                   <td className="text-right px-3 py-2 tabular-nums text-gray-600">{rolls}</td>
                   <td className="text-right px-3 py-2 tabular-nums font-medium text-gray-800">
